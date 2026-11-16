@@ -154,11 +154,14 @@ If gate fails -> 402 {error:"PLAN_LIMIT", message:"...upgrade..."}.
   userData/settings.json (desktop). All API calls send Authorization: Bearer.
   401 -> back to login screen.
 - Pricing section renders GET /api/plans. Subscribe button -> checkout ->
-  Cashfree JS SDK (https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js or
-  .prod.js — pick by CASHFREE_ENV the backend reports? Simpler: backend
-  /api/subscriptions/checkout returns {payment_session_id, mode: "PROD"|"SANDBOX"}
-  and the frontend loads the matching SDK script) -> on success redirect to
-  /api/subscriptions/verify flow (frontend return page calls verify, shows result).
+  Cashfree Checkout JS v3 (https://sdk.cashfree.com/js/v3/cashfree.js — one
+  bundle for both modes; Cashfree({mode: "production"|"sandbox"}) then
+  checkout({paymentSessionId, redirectTarget: "_modal"}). The old
+  js/ui/2.0.0 bundle's Cashfree is a class, so calling it as Cashfree({mode})
+  failed with "Cannot call a class as a function" — do not use it.) The
+  backend /api/subscriptions/checkout returns {payment_session_id, mode:
+  "PROD"|"SANDBOX"} -> on success redirect to /api/subscriptions/verify
+  flow (frontend return page calls verify, shows result).
 - Live session: on Start, call /api/sessions/start (402 -> show upgrade prompt).
   Mic: browser SpeechRecognition (web) / Whisper chunks (desktop) as before;
   transcription via /api/ai/transcribe; typed questions + screenshot via
