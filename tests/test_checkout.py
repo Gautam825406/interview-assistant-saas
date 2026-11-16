@@ -59,6 +59,30 @@ def test_checkout_free_plan_400(client, user, mock_cashfree):
     assert r.status_code == 400
 
 
+def test_checkout_without_phone_400(client, user_no_phone, mock_cashfree):
+    # Cashfree rejects an order with no customer_phone, so the backend
+    # asks for the number up front instead of failing at the provider.
+    r = client.post(
+        "/api/subscriptions/checkout",
+        json={"plan_slug": "monthly"},
+        headers=auth(user_no_phone["token"]),
+    )
+    assert r.status_code == 400
+    assert "PHONE_REQUIRED" in r.text
+    assert mock_cashfree == {}
+
+
+def test_checkout_sends_phone(client, user, mock_cashfree):
+    r = client.post(
+        "/api/subscriptions/checkout",
+        json={"plan_slug": "monthly"},
+        headers=auth(user["token"]),
+    )
+    assert r.status_code == 200, r.text
+    assert mock_cashfree["customer_phone"] == "9876543210"
+    assert mock_cashfree["customer_email"] == "user@test.local"
+
+
 def test_checkout_unknown_plan_404(client, user, mock_cashfree):
     r = client.post(
         "/api/subscriptions/checkout",

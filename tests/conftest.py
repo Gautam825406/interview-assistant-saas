@@ -94,4 +94,15 @@ def admin(client):
 
 @pytest.fixture()
 def user(client, admin):
-    return signup(client, "user@test.local", name="Regular User")
+    u = signup(client, "user@test.local", name="Regular User")
+    r = client.patch(
+        "/api/auth/me", json={"phone": "9876543210"}, headers=auth(u["token"])
+    )
+    assert r.status_code == 200, r.text
+    u["user"] = r.json()["user"]
+    return u
+
+
+@pytest.fixture()
+def user_no_phone(client, admin):
+    return signup(client, "nophone@test.local", name="No Phone User")
