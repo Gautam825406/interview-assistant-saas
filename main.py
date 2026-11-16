@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.db import Base, SessionLocal, engine
+from app.db import Base, SessionLocal, engine, ensure_user_phone_column
 from app.routers import admin, ai, auth, plans, subscriptions, webhooks
 from app.seed import seed_plans
 
@@ -18,6 +18,7 @@ from app.seed import seed_plans
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_user_phone_column(engine)
     db = SessionLocal()
     try:
         seed_plans(db)
