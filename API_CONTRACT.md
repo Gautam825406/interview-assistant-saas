@@ -86,6 +86,9 @@ If gate fails -> 402 {error:"PLAN_LIMIT", message:"...upgrade..."}.
 - POST /api/mocks/start (Bearer) -> {ok, mocks_used, mock_limit} or 402.
 - POST /api/ai/chat {messages:[{role,content}], temperature?, max_tokens?}
   -> {text, provider, model}. Routes to default_provider with its key+model.
+  The backend adds a natural Indian English tone instruction to the first
+  system message (or prepends one if the client sent none), so every chat
+  answer — live, mock feedback, desktop — replies in Indian English.
   Provider clients:
   - groq: POST https://api.groq.com/openai/v1/chat/completions (OpenAI shape).
   - openai: POST https://api.openai.com/v1/chat/completions (OpenAI shape).
