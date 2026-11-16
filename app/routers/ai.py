@@ -24,6 +24,32 @@ from ..settings_util import (
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
+# All chat answers reply in natural Indian English, whatever the client
+# asked for. Kept here (not in any one client) so the web app, the desktop
+# app and mock-interview feedback all get the same tone.
+RESPONSE_TONE = (
+    "Answer in natural Indian English — clear, simple and polite, the way an "
+    "Indian professional speaks in an interview. Use Indian English phrasing "
+    "(for example, 'Could you please explain…', 'As I was mentioning…', "
+    "'Basically, the idea is…'), avoid American slang, and keep sentences "
+    "short and easy to speak aloud."
+)
+
+
+def _with_tone(messages: list) -> list:
+    """Add RESPONSE_TONE to the messages sent to the provider.
+
+    Appended to the first system message when the client sent one (so
+    Gemini/Claude, which take only one system instruction, still get it),
+    otherwise added as its own system message.
+    """
+    msgs = [dict(m) for m in messages]
+    for m in msgs:
+        if m.get("role") == "system":
+            m["content"] = (m.get("content") or "") + "\n\n" + RESPONSE_TONE
+            return msgs
+    return [{"role": "system", "content": RESPONSE_TONE}] + msgs
+
 # Session/mock start live at /api/sessions/start and /api/mocks/start
 # (contract paths — NOT under /api/ai).
 session_router = APIRouter(prefix="/api", tags=["sessions"])
@@ -105,7 +131,7 @@ async def chat(body: ChatIn, user: User = Depends(get_current_user), db: Session
         raise HTTPException(status_code=400, detail="messages is required")
     try:
         text, t_in, t_out = await providers.chat(
-            provider, key, model, body.messages,
+            provider, key, model, _with_tone(body.messages),
             temperature=body.temperature or 0.4,
             max_tokens=body.max_tokens or 1200,
         )
