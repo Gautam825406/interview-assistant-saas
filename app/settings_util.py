@@ -60,6 +60,7 @@ def user_dict(u: User) -> dict:
         "name": u.name,
         "email": u.email,
         "role": u.role,
+        "phone": u.phone,
         "plan_slug": u.plan_slug,
     }
 

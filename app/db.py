@@ -4,7 +4,7 @@ across both backends. No Postgres-only syntax anywhere.
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from .config import settings
@@ -27,6 +27,25 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+
+def ensure_user_phone_column(engine):
+    """Add users.phone on databases created before the column existed.
+
+    create_all() never adds a column to an existing table, so a database
+    built by an older release needs this one-time ALTER. Idempotent:
+    does nothing when the column is already there. Works on Postgres
+    and SQLite (both support ADD COLUMN; the inspector check keeps it
+    safe to run on every startup).
+    """
+    insp = inspect(engine)
+    if "users" not in insp.get_table_names():
+        return
+    cols = [c["name"] for c in insp.get_columns("users")]
+    if "phone" in cols:
+        return
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(20)"))
 
 
 def utcnow() -> datetime:

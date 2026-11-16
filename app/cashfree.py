@@ -43,9 +43,18 @@ def _headers() -> dict:
 
 
 async def create_order(
-    order_id: str, amount: float, currency: str, customer_id: str, customer_email: str
+    order_id: str,
+    amount: float,
+    currency: str,
+    customer_id: str,
+    customer_email: str,
+    customer_phone: str,
 ) -> dict:
-    """Create a Cashfree order. Returns the raw JSON (payment_session_id etc.)."""
+    """Create a Cashfree order. Returns the raw JSON (payment_session_id etc.).
+
+    customer_phone is required by Cashfree — an order without it fails
+    with 400 "customer_phone is missing in the request".
+    """
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(
             f"{base_url()}/pg/orders",
@@ -57,6 +66,7 @@ async def create_order(
                 "customer_details": {
                     "customer_id": customer_id,
                     "customer_email": customer_email,
+                    "customer_phone": customer_phone,
                 },
             },
         )

@@ -12,6 +12,7 @@ class User(Base):
     email = Column(String(320), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, default="user")  # admin | user
+    phone = Column(String(20), nullable=True)  # mobile for Cashfree orders
     plan_slug = Column(String(50), nullable=False, default="free")
     sessions_used = Column(Integer, nullable=False, default=0)
     mocks_used = Column(Integer, nullable=False, default=0)
