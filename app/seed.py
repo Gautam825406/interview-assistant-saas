@@ -3,6 +3,8 @@
 Prices are in INR. Also converts the original USD seed prices to INR
 once (Nov 2026): plans that still carry the untouched USD seed values
 get the matching INR price; anything the admin customised is left alone.
+The currency may be "USD" (original seed) or "₹" (typed into the Admin
+panel instead of the "INR" code) — both mean the same legacy state.
 """
 from sqlalchemy.orm import Session
 
@@ -78,9 +80,19 @@ def migrate_usd_plans_to_inr(db: Session) -> None:
     changed = False
     for p in DEFAULT_PLANS:
         row = db.query(Plan).filter(Plan.slug == p["slug"]).first()
-        if row and row.currency == "USD" and float(row.price or 0) == OLD_USD_PRICES.get(p["slug"]):
+        if not row:
+            continue
+        # Currency "USD" is the original seed; "₹" is what lands in the
+        # column when the Admin panel's currency box is filled with the
+        # rupee symbol instead of the "INR" code. Either way, if the price
+        # is still the untouched USD seed value, convert the row.
+        if row.currency in ("USD", "₹") and float(row.price or 0) == OLD_USD_PRICES.get(p["slug"]):
             row.price = p["price"]
             row.currency = "INR"
+            changed = True
+        # The yearly plan's feature line still quotes the old dollar price.
+        if row.slug == "yearly" and row.features and "$49.99/mo billed yearly" in row.features:
+            row.features = ["₹4,167/mo billed yearly" if f == "$49.99/mo billed yearly" else f for f in row.features]
             changed = True
     if changed:
         db.commit()
