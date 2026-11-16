@@ -1,14 +1,22 @@
-"""Seed default plans on startup (only if the plans table is empty)."""
+"""Seed default plans on startup (only if the plans table is empty).
+
+Prices are in INR. Also converts the original USD seed prices to INR
+once (Nov 2026): plans that still carry the untouched USD seed values
+get the matching INR price; anything the admin customised is left alone.
+"""
 from sqlalchemy.orm import Session
 
 from .models import Plan
 
+# INR prices (converted from the original USD prices at ~Rs 85/$,
+# rounded to clean numbers): free Rs 0, weekly Rs 6,499, monthly
+# Rs 12,999, yearly Rs 49,999 (Rs 4,167/mo billed yearly).
 DEFAULT_PLANS = [
     {
         "slug": "free",
         "name": "Free",
         "price": 0.0,
-        "currency": "USD",
+        "currency": "INR",
         "duration_days": 0,
         "sessions_limit": 10,
         "minutes_per_session": 10,
@@ -19,8 +27,8 @@ DEFAULT_PLANS = [
     {
         "slug": "weekly",
         "name": "Weekly",
-        "price": 78.0,
-        "currency": "USD",
+        "price": 6499.0,
+        "currency": "INR",
         "duration_days": 7,
         "sessions_limit": None,
         "minutes_per_session": None,
@@ -31,8 +39,8 @@ DEFAULT_PLANS = [
     {
         "slug": "monthly",
         "name": "Monthly",
-        "price": 149.90,
-        "currency": "USD",
+        "price": 12999.0,
+        "currency": "INR",
         "duration_days": 30,
         "sessions_limit": None,
         "minutes_per_session": None,
@@ -43,8 +51,8 @@ DEFAULT_PLANS = [
     {
         "slug": "yearly",
         "name": "Yearly",
-        "price": 599.90,
-        "currency": "USD",
+        "price": 49999.0,
+        "currency": "INR",
         "duration_days": 365,
         "sessions_limit": None,
         "minutes_per_session": None,
@@ -54,16 +62,34 @@ DEFAULT_PLANS = [
             "Unlimited mock interviews",
             "Resume PDFs",
             "Headshots",
-            "$49.99/mo billed yearly",
+            "₹4,167/mo billed yearly",
         ],
         "sort_order": 4,
     },
 ]
 
+# The original USD seed prices (pre-INR). A plan is only converted when
+# its price still equals its USD seed value exactly — a customised price
+# is never overwritten.
+OLD_USD_PRICES = {"free": 0.0, "weekly": 78.0, "monthly": 149.90, "yearly": 599.90}
+
+
+def migrate_usd_plans_to_inr(db: Session) -> None:
+    changed = False
+    for p in DEFAULT_PLANS:
+        row = db.query(Plan).filter(Plan.slug == p["slug"]).first()
+        if row and row.currency == "USD" and float(row.price or 0) == OLD_USD_PRICES.get(p["slug"]):
+            row.price = p["price"]
+            row.currency = "INR"
+            changed = True
+    if changed:
+        db.commit()
+
 
 def seed_plans(db: Session) -> None:
-    if db.query(Plan).count() > 0:
+    if db.query(Plan).count() == 0:
+        for p in DEFAULT_PLANS:
+            db.add(Plan(**p))
+        db.commit()
         return
-    for p in DEFAULT_PLANS:
-        db.add(Plan(**p))
-    db.commit()
+    migrate_usd_plans_to_inr(db)

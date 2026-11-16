@@ -25,7 +25,7 @@ class Plan(Base):
     slug = Column(String(50), unique=True, index=True, nullable=False)
     name = Column(String(100), nullable=False)
     price = Column(Float, nullable=False, default=0.0)
-    currency = Column(String(10), nullable=False, default="USD")
+    currency = Column(String(10), nullable=False, default="INR")
     duration_days = Column(Integer, nullable=False, default=0)
     sessions_limit = Column(Integer, nullable=True)  # NULL = unlimited
     minutes_per_session = Column(Integer, nullable=True)
@@ -46,7 +46,7 @@ class Subscription(Base):
     expires_at = Column(DateTime, nullable=True)
     cf_order_id = Column(String(100), nullable=True)
     amount = Column(Float, nullable=False, default=0.0)
-    currency = Column(String(10), nullable=False, default="USD")
+    currency = Column(String(10), nullable=False, default="INR")
     created_at = Column(DateTime, nullable=False, default=utcnow)
 
 
@@ -58,7 +58,7 @@ class Payment(Base):
     cf_order_id = Column(String(100), unique=True, nullable=False, index=True)
     plan_slug = Column(String(50), nullable=False)
     amount = Column(Float, nullable=False)
-    currency = Column(String(10), nullable=False, default="USD")
+    currency = Column(String(10), nullable=False, default="INR")
     status = Column(String(20), nullable=False, default="pending")  # pending|success|failed
     cf_payment_id = Column(String(100), nullable=True)
     created_at = Column(DateTime, nullable=False, default=utcnow)
