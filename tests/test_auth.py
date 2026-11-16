@@ -73,5 +73,6 @@ def test_public_plans_seeded(client):
     slugs = [p["slug"] for p in r.json()]
     assert slugs == ["free", "weekly", "monthly", "yearly"]
     monthly = [p for p in r.json() if p["slug"] == "monthly"][0]
-    assert monthly["price"] == 149.90
+    assert monthly["price"] == 12999.0
+    assert monthly["currency"] == "INR"
     assert monthly["sessions_limit"] is None  # unlimited

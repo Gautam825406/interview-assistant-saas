@@ -36,8 +36,8 @@ def test_checkout_uses_db_price(client, user, mock_cashfree):
     assert r.status_code == 200, r.text
     assert r.json()["payment_session_id"] == "sess_test_123"
     # The order amount is the DB plan price, not anything the client sent.
-    assert mock_cashfree["amount"] == 149.90
-    assert mock_cashfree["currency"] == "USD"
+    assert mock_cashfree["amount"] == 12999.0
+    assert mock_cashfree["currency"] == "INR"
 
 
 def test_checkout_weekly_price(client, user, mock_cashfree):
@@ -47,7 +47,7 @@ def test_checkout_weekly_price(client, user, mock_cashfree):
         headers=auth(user["token"]),
     )
     assert r.status_code == 200
-    assert mock_cashfree["amount"] == 78.0
+    assert mock_cashfree["amount"] == 6499.0
 
 
 def test_checkout_free_plan_400(client, user, mock_cashfree):
