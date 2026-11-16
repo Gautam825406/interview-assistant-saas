@@ -13,6 +13,7 @@ from ..db import get_db, utcnow
 from ..deps import get_current_user
 from ..gate import active_subscription
 from ..models import Payment, Plan, Subscription, User
+from ..phone import normalize_phone
 from ..settings_util import subscription_dict
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
@@ -34,6 +35,14 @@ async def checkout(body: CheckoutIn, user: User = Depends(get_current_user), db:
             status_code=503,
             detail="Payments are not configured yet — the service owner has not added Cashfree keys.",
         )
+    phone = normalize_phone(user.phone)
+    if not phone:
+        # Cashfree rejects the order without a phone number, so ask for it
+        # up front instead of failing at the payment provider.
+        raise HTTPException(
+            status_code=400,
+            detail="PHONE_REQUIRED: Add your mobile number to pay — the payment provider needs it for the order.",
+        )
     order_id = cashfree.new_order_id()
     payment = Payment(
         user_id=user.id,
@@ -52,6 +61,7 @@ async def checkout(body: CheckoutIn, user: User = Depends(get_current_user), db:
             currency=plan.currency,
             customer_id=f"user-{user.id}",
             customer_email=user.email,
+            customer_phone=phone,
         )
     except Exception as e:
         payment.status = "failed"

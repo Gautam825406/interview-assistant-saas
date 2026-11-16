@@ -7,6 +7,7 @@ from ..db import get_db
 from ..deps import get_current_user
 from ..gate import active_subscription, get_plan
 from ..models import Subscription, User
+from ..phone import normalize_phone
 from ..security import EMAIL_RE, create_access_token, hash_password, verify_password
 from ..settings_util import subscription_dict, user_dict
 
@@ -22,6 +23,11 @@ class SignupIn(BaseModel):
 class LoginIn(BaseModel):
     email: str
     password: str
+
+
+class MeUpdateIn(BaseModel):
+    name: str | None = None
+    phone: str | None = None
 
 
 def _auth_response(user: User) -> dict:
@@ -56,6 +62,23 @@ def login(body: LoginIn, db: Session = Depends(get_db)):
     if not user or not verify_password(body.password or "", user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     return _auth_response(user)
+
+
+@router.patch("/me")
+def update_me(body: MeUpdateIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if body.name is not None:
+        name = (body.name or "").strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Name is required")
+        user.name = name
+    if body.phone is not None:
+        phone = normalize_phone(body.phone)
+        if phone is None:
+            raise HTTPException(status_code=400, detail="Enter a valid 10-digit mobile number")
+        user.phone = phone
+    db.commit()
+    db.refresh(user)
+    return {"user": user_dict(user)}
 
 
 @router.get("/me")
