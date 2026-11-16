@@ -36,7 +36,30 @@ def test_chat_groq_happy(client, user, db, mock_chat):
     assert body["provider"] == "groq"
     assert body["model"] == "openai/gpt-oss-120b"
     assert mock_chat["payload"]["model"] == "openai/gpt-oss-120b"
-    assert mock_chat["payload"]["messages"][0]["content"] == "How do I reverse a string?"
+    # The backend adds the Indian-English tone as the first system message;
+    # the caller's own message follows unchanged.
+    msgs = mock_chat["payload"]["messages"]
+    assert msgs[0]["role"] == "system"
+    assert "Indian English" in msgs[0]["content"]
+    assert msgs[1]["content"] == "How do I reverse a string?"
+
+
+def test_chat_tone_merges_into_client_system_message(client, user, db, mock_chat):
+    set_provider_key(db, "groq", "gsk_test_key")
+    r = client.post(
+        "/api/ai/chat",
+        json={"messages": [
+            {"role": "system", "content": "You are a strict interview coach."},
+            {"role": "user", "content": "hi"},
+        ]},
+        headers=auth(user["token"]),
+    )
+    assert r.status_code == 200, r.text
+    msgs = mock_chat["payload"]["messages"]
+    assert len([m for m in msgs if m["role"] == "system"]) == 1
+    assert "You are a strict interview coach." in msgs[0]["content"]
+    assert "Indian English" in msgs[0]["content"]
+    assert msgs[1]["content"] == "hi"
 
 
 def test_chat_no_provider_key_503(client, user):
