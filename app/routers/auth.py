@@ -18,6 +18,7 @@ class SignupIn(BaseModel):
     name: str
     email: str
     password: str
+    phone: str | None = None
 
 
 class LoginIn(BaseModel):
@@ -45,10 +46,18 @@ def signup(body: SignupIn, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Invalid email address")
     if len(password) < 6:
         raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    # The mobile number is collected at registration because Cashfree
+    # requires customer_phone in every payment order.
+    phone = normalize_phone(body.phone)
+    if phone is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Mobile number is required — the payment provider needs it for orders.",
+        )
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(status_code=400, detail="An account with this email already exists")
     role = "admin" if db.query(User).count() == 0 else "user"
-    user = User(name=name, email=email, password_hash=hash_password(password), role=role)
+    user = User(name=name, email=email, password_hash=hash_password(password), role=role, phone=phone)
     db.add(user)
     db.commit()
     db.refresh(user)
