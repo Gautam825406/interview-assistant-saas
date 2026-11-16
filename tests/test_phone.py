@@ -39,6 +39,42 @@ def test_patch_me_rejects_bad_phone(client, user_no_phone):
     assert r.status_code == 400
 
 
+def test_signup_requires_phone(client):
+    r = client.post(
+        "/api/auth/signup",
+        json={"name": "No Phone", "email": "x@test.local", "password": "password123"},
+    )
+    assert r.status_code == 400
+    assert "Mobile number" in r.text
+
+
+def test_signup_rejects_bad_phone(client):
+    r = client.post(
+        "/api/auth/signup",
+        json={
+            "name": "Bad Phone",
+            "email": "x@test.local",
+            "password": "password123",
+            "phone": "12345",
+        },
+    )
+    assert r.status_code == 400
+
+
+def test_signup_stores_normalised_phone(client):
+    r = client.post(
+        "/api/auth/signup",
+        json={
+            "name": "With Phone",
+            "email": "withphone@test.local",
+            "password": "password123",
+            "phone": "+91 98765 43210",
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["user"]["phone"] == "9876543210"
+
+
 def test_ensure_phone_column_adds_missing_column():
     # Simulate a database built by an older release: users table with
     # no phone column. The migration must add it, and be idempotent.
