@@ -46,8 +46,10 @@ No default secrets in code. No hard-coded API keys anywhere.
   known), ok, error, created_at. (For admin overview; keep writes cheap.)
 
 ## Auth endpoints
-- POST /api/auth/signup {name, email, password} -> {token, user{id,name,email,role,phone,plan_slug}}
+- POST /api/auth/signup {name, email, password, phone} -> {token, user{id,name,email,role,phone,plan_slug}}
   First user in DB becomes admin. Validate: email format, password >= 6 chars.
+  Phone is required — Cashfree needs customer_phone in every payment order;
+  it is stored as 10 digits (input may carry +91 / spaces / dashes).
 - POST /api/auth/login {email, password} -> same shape.
 - GET /api/auth/me (Bearer) -> {user, subscription{plan_slug,status,expires_at}|null, usage{sessions_used,mocks_used,sessions_limit,mock_limit}}.
 - PATCH /api/auth/me {name?, phone?} (Bearer) -> {user}. Phone is the mobile
