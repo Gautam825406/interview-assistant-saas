@@ -68,10 +68,10 @@ def client():
         yield c
 
 
-def signup(client, email, password="secret123", name="Test User"):
+def signup(client, email, password="secret123", name="Test User", phone="9876543210"):
     r = client.post(
         "/api/auth/signup",
-        json={"name": name, "email": email, "password": password},
+        json={"name": name, "email": email, "password": password, "phone": phone},
     )
     assert r.status_code == 200, r.text
     return r.json()
@@ -94,15 +94,28 @@ def admin(client):
 
 @pytest.fixture()
 def user(client, admin):
-    u = signup(client, "user@test.local", name="Regular User")
-    r = client.patch(
-        "/api/auth/me", json={"phone": "9876543210"}, headers=auth(u["token"])
-    )
-    assert r.status_code == 200, r.text
-    u["user"] = r.json()["user"]
-    return u
+    return signup(client, "user@test.local", name="Regular User")
 
 
 @pytest.fixture()
-def user_no_phone(client, admin):
-    return signup(client, "nophone@test.local", name="No Phone User")
+def user_no_phone(client, admin, db):
+    # Signup now requires a phone, so an account without one can only
+    # exist from before that change — build it straight in the DB.
+    from app.models import User
+    from app.security import hash_password
+
+    u = User(
+        name="No Phone User",
+        email="nophone@test.local",
+        password_hash=hash_password("password123"),
+        role="user",
+    )
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    r = client.post(
+        "/api/auth/login",
+        json={"email": "nophone@test.local", "password": "password123"},
+    )
+    assert r.status_code == 200, r.text
+    return r.json()
