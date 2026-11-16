@@ -1,0 +1,28 @@
+# Render Blueprint — Interview Assistant SaaS API
+# Deploy: push this folder's repo to GitHub, then in Render:
+#   New > Blueprint > select the repo (root directory: backend).
+# Or create a Web Service manually with the commands below.
+# Env vars marked sync:false must be set in the Render dashboard.
+services:
+  - type: web
+    name: interview-assistant-api
+    env: python
+    runtime: python3.12
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Neon Postgres connection string (pooled)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true # Fernet key is derived from this at runtime
+      - key: CASHFREE_APP_ID
+        sync: false
+      - key: CASHFREE_SECRET_KEY
+        sync: false
+      - key: CASHFREE_ENV
+        value: PROD
+      - key: CORS_ORIGINS
+        value: https://interview-assistant-web-nu.vercel.app
